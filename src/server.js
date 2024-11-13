@@ -20,10 +20,13 @@ function onSocketClose() {
 }
 
 // 메세지가 오면 실행
-function onSocketMessage(message) {
+function onSocketMessage(msg) {
+    const message = JSON.parse(msg)
     console.log(message);
-    // 문자열로 변환해 출력
     console.log(String(message));
+    
+    // 문자열로 변환해 출력
+    console.log(message.payload);
 }
 
 // 소켓들을 관리할 배열
@@ -35,21 +38,33 @@ wss.on("connection", (socket) => {
     // 소켓
     sockets.push(socket);
 
+    socket["nickname"] = "Anon";
+
     console.log("Connected to Browser ✅");
     
     socket.on("close", onSocketClose);
     // 메세지가 오면 메세지 출력
-    // 버퍼가 출력(아스키 코드로)
+    // 서버가 받은 메세지 출력
     socket.on("message", onSocketMessage);
     
     // 연결이 되면 hello 전송
-    socket.send("hello!!!");
+    // socket.send("hello!!!");
     
     // 소켓 여러개를 관리 소켓을 연결할때 메세지 이벤트 on("message")로 등록하여
     // 하나의 소켓에서 받은 메세지를 연결된 모든 소켓에 전달
-    socket.on("message", (message) => {
-        sockets.forEach((aSocket) => aSocket.send(message));
+    socket.on("message", (msg) => {
+        const message = JSON.parse(msg);
+        switch (message.type) {
+            case "new_message":
+                sockets.forEach((aSocket) =>
+                    aSocket.send(`${socket.nickname}: ${message.payload}`)
+            );
+            case "nickname":
+                socket["nickname"] = message.payload;
+    }
     });
 });
+// ws는 소켓으로 사용자 식별 가능 : 소켓을 계속 유지하기 때문
+// 소켓 자체에 정보를 넣어 보관 가능
 
 server.listen(3000, handleListen);
